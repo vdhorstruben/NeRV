@@ -19,6 +19,10 @@ import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
+from ray import tune
+from ray.air import Checkpoint, session
+from ray.tune.schedulers import ASHAScheduler
+
 from model_nerv import CustomDataSet, Generator
 from utils import *
 
@@ -99,7 +103,8 @@ def main():
 
     print(args)
     torch.set_printoptions(precision=4) 
-
+    data_dir = os.path.abspath("./data")
+    
     if args.debug:
         args.eval_freq = 1
         args.outf = 'output/debug'
@@ -135,10 +140,25 @@ def main():
 
     torch.set_printoptions(precision=2) 
     args.ngpus_per_node = torch.cuda.device_count()
-    if args.distributed and args.ngpus_per_node > 1:
-        mp.spawn(train, nprocs=args.ngpus_per_node, args=(args,))
-    else:
-        train(None, args)
+    # if args.distributed and args.ngpus_per_node > 1:
+    #     mp.spawn(train, nprocs=args.ngpus_per_node, args=(args,))
+    # else:
+    #     train(None, args)
+
+    config = {
+        "l1": tune.choice([2**i for i in range(9)]),
+        "l2": tune.choice([2**i for i in range(9)]),
+        "lr": tune.loguniform(1e-4, 1e-1),
+        "batch_size": tune.choice([2, 4, 8, 16]),
+    }
+
+    result = tune.run(
+        partial(train, data_dir=data_dir),
+        resources_per_trial={"cpu": 2, "gpu": gpus_per_trial},
+        config=config,
+        num_samples=num_samples,
+        scheduler=scheduler,
+    )
 
 def train(local_rank, args):
     cudnn.benchmark = True
@@ -392,7 +412,20 @@ def train(local_rank, args):
             'val_best_psnr': val_best_psnr,
             'val_best_msssim': val_best_msssim,
             'optimizer': optimizer.state_dict(),   
-        }    
+        }
+
+        checkpoint_data = {
+            "epoch": epoch,
+            "net_state_dict": net.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+        }
+        checkpoint = Checkpoint.from_dict(checkpoint_data)
+
+        session.report(
+            {"loss": val_loss / val_steps, "accuracy": correct / total},
+            checkpoint=checkpoint,
+        )
+
         # evaluation
         if (epoch + 1) % args.eval_freq == 0 or epoch > total_epochs - 10:
             val_start_time = datetime.now()
