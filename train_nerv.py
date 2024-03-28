@@ -43,7 +43,7 @@ def main():
     parser.add_argument('--fc_hw_dim', type=str, default='9_16_128', help='out size (h,w) for mlp')
     parser.add_argument('--expansion', type=float, default=8, help='channel expansion from fc to conv')
     parser.add_argument('--reduction', type=int, default=2)
-    parser.add_argument('--strides', type=int, nargs='+', default=[5, 3, 2, 2, 2], help='strides list')
+    parser.add_argument('--strides', type=int, nargs='+', default=[5, 2, 2, 2, 2], help='strides list')
     parser.add_argument('--num-blocks', type=int, default=1)
 
     parser.add_argument('--norm', default='none', type=str, help='norm layer for generator', choices=['none', 'bn', 'in'])
