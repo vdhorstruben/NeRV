@@ -104,7 +104,6 @@ def main():
     print(args)
     torch.set_printoptions(precision=4) 
     data_dir = os.path.abspath("./data")
-    
     if args.debug:
         args.eval_freq = 1
         args.outf = 'output/debug'
