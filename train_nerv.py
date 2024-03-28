@@ -19,6 +19,7 @@ import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
+from functools import partial
 from ray import tune, train
 from ray.train import Checkpoint, session
 from ray.tune.schedulers import ASHAScheduler
@@ -27,7 +28,7 @@ from model_nerv import CustomDataSet, Generator
 from utils import *
 
 
-def main():
+def main(gpus_per_trial=0, num_samples=10, max_num_epochs=10):
     parser = argparse.ArgumentParser()
 
     # dataset parameters
@@ -150,6 +151,14 @@ def main():
         "lr": tune.loguniform(1e-4, 1e-1),
         "batch_size": tune.choice([2, 4, 8, 16]),
     }
+    
+    scheduler = ASHAScheduler(
+        metric="loss",
+        mode="min",
+        max_t=max_num_epochs,
+        grace_period=1,
+        reduction_factor=2,
+    )
 
     result = tune.run(
         partial(train, data_dir=data_dir),
@@ -158,6 +167,7 @@ def main():
         num_samples=num_samples,
         scheduler=scheduler,
     )
+
 
 def train(local_rank, args):
     cudnn.benchmark = True
