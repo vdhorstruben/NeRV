@@ -1,3 +1,0 @@
-2024_03_28_10_34_01	 Results for checkpoint: /kaggle/working/NeRV/output/bunny_ab/video01_frames/embed1.25_40_512_1_fc_9_16_26__exp1.0_reduce2_low96_blk1_cycle1_gap1_e1200_warm240_b1_conv_lr0.0005_cosine_Fusion6_Strd5,2,2,2,2_SinRes_actswish_/model_latest.pth
-PSNR/ms_ssim on validate set for bit -1 with axis 0: 31.68/0.9388
-
