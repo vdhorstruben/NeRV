@@ -19,9 +19,8 @@ import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from ray import tune
-from ray import air
-from ray.air import Checkpoint, session
+from ray import tune, train
+from ray.train import Checkpoint, session
 from ray.tune.schedulers import ASHAScheduler
 
 from model_nerv import CustomDataSet, Generator
