@@ -20,6 +20,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from ray import tune
+from ray import air
 from ray.air import Checkpoint, session
 from ray.tune.schedulers import ASHAScheduler
 
