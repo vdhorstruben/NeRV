@@ -1,0 +1,44 @@
+Generator(
+  (stem): Sequential(
+    (0): Linear(in_features=80, out_features=512, bias=True)
+    (1): SiLU(inplace=True)
+    (2): Linear(in_features=512, out_features=3744, bias=True)
+    (3): SiLU(inplace=True)
+  )
+  (layers): ModuleList(
+    (0): NeRVBlock(
+      (conv): CustomConv(
+        (conv): Conv2d(26, 650, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (up_scale): PixelShuffle(upscale_factor=5)
+      )
+      (norm): Identity()
+      (act): SiLU(inplace=True)
+    )
+    (1): NeRVBlock(
+      (conv): CustomConv(
+        (conv): Conv2d(26, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (up_scale): PixelShuffle(upscale_factor=2)
+      )
+      (norm): Identity()
+      (act): SiLU(inplace=True)
+    )
+    (2-4): 3 x NeRVBlock(
+      (conv): CustomConv(
+        (conv): Conv2d(96, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        (up_scale): PixelShuffle(upscale_factor=2)
+      )
+      (norm): Identity()
+      (act): SiLU(inplace=True)
+    )
+  )
+  (head_layers): ModuleList(
+    (0-3): 4 x None
+    (4): Conv2d(96, 3, kernel_size=(1, 1), stride=(1, 1))
+  )
+)
+Params: 3.201905M
+Rank:None, Step [1/250], PSNR: 30.7, MSSSIM: 0.9264 FPS: 0.27
+Rank:None, Step [51/250], PSNR: 31.06, MSSSIM: 0.9298 FPS: 7.1
+Rank:None, Step [101/250], PSNR: 31.37, MSSSIM: 0.9333 FPS: 9.48
+Rank:None, Step [151/250], PSNR: 31.59, MSSSIM: 0.9352 FPS: 10.68
+Rank:None, Step [201/250], PSNR: 31.85, MSSSIM: 0.9395 FPS: 11.4
