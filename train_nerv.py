@@ -302,8 +302,15 @@ def train(local_rank, args):
     # Training
     start = datetime.now()
     total_epochs = args.epochs * args.cycles
+    ###Begin-Jules
+    # Initialize TensorBoard Summary Writers
+    train_writer = SummaryWriter(log_dir=os.path.join(args.outf, 'train_logs'))
+    ###End-Jules
     for epoch in range(args.start_epoch, total_epochs):
         model.train()
+        ###Begin-Jules
+        train_loss = 0  # Initialize training loss accumulator
+        ###End-Jules
         ##### prune the network if needed #####
         if prune_net and epoch in args.prune_steps:
             prune_num += 1 
@@ -341,6 +348,9 @@ def train(local_rank, args):
             optimizer.zero_grad()
             loss_sum.backward()
             optimizer.step()
+            ###Begin-Jules
+            epoch_loss += loss_sum.item()
+            ###End-Jules
 
             # compute psnr and msssim
             psnr_list.append(psnr_fn(output_list, target_list))
@@ -358,7 +368,12 @@ def train(local_rank, args):
                 if local_rank in [0, None]:
                     with open('{}/rank0.txt'.format(args.outf), 'a') as f:
                         f.write(print_str + '\n')
-
+        ###Begin-Jules
+        # Compute and log training loss
+        train_loss /= len(train_dataloader)  # Calculate average training loss per epoch
+        train_writer.add_scalar('Loss', train_loss, epoch+1)
+        ###End-Jules
+        
         # collect numbers from other gpus
         if args.distributed and args.ngpus_per_node > 1:
             train_psnr = all_reduce([train_psnr.to(local_rank)])
@@ -428,7 +443,7 @@ def train(local_rank, args):
 
     print("Training complete in: " + str(datetime.now() - start))
 
-
+train_writer.close()
 @torch.no_grad()
 def evaluate(model, val_dataloader, pe, local_rank, args):
     # Model Quantization
