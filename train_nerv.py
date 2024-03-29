@@ -349,7 +349,7 @@ def train(local_rank, args):
             loss_sum.backward()
             optimizer.step()
             ###Begin-Jules
-            epoch_loss += loss_sum.item()
+            train_loss += loss_sum.item()
             ###End-Jules
 
             # compute psnr and msssim
