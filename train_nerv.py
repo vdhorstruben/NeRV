@@ -440,10 +440,10 @@ def train(local_rank, args):
             torch.save(save_checkpoint, '{}/model_latest.pth'.format(args.outf))
             if is_train_best:
                 torch.save(save_checkpoint, '{}/model_train_best.pth'.format(args.outf))
-
+    train_writer.close()
     print("Training complete in: " + str(datetime.now() - start))
 
-train_writer.close()
+
 @torch.no_grad()
 def evaluate(model, val_dataloader, pe, local_rank, args):
     # Model Quantization
