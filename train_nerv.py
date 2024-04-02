@@ -128,8 +128,8 @@ def main(gpus_per_trial=0, num_samples=10, max_num_epochs=10):
 
     args.outf = os.path.join(args.outf, exp_id)
     if args.overwrite and os.path.isdir(args.outf):
-    	print('Will overwrite the existing output dir!')
-    	shutil.rmtree(args.outf)
+        print('Will overwrite the existing output dir!')
+        shutil.rmtree(args.outf)
 
     if not os.path.isdir(args.outf):
         os.makedirs(args.outf)
@@ -147,7 +147,7 @@ def main(gpus_per_trial=0, num_samples=10, max_num_epochs=10):
 
     config = {
         "l1": tune.choice([2**i for i in range(9)]),
-        "l2": tune.choice([2**i for i in range(9)]),
+        "l2": tune.choice([2**i for i in range(9)]), 
         "lr": tune.loguniform(1e-4, 1e-1),
         "batch_size": tune.choice([2, 4, 8, 16]),
     }
