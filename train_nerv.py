@@ -28,7 +28,7 @@ from model_nerv import CustomDataSet, Generator
 from utils import *
 
 
-def main(gpus_per_trial=0, num_samples=10, max_num_epochs=10):
+def main():
     parser = argparse.ArgumentParser()
 
     # dataset parameters
@@ -98,6 +98,9 @@ def main(gpus_per_trial=0, num_samples=10, max_num_epochs=10):
     parser.add_argument('--outf', default='unify', help='folder to output images and model checkpoints')
     parser.add_argument('--suffix', default='', help="suffix str for outf")
 
+
+    parser.add_argument('--num_samples', default=1, help='How often the hyperparameter space needs to be sampled')
+
     args = parser.parse_args()
         
     args.warmup = int(args.warmup * args.epochs)
@@ -144,32 +147,30 @@ def main(gpus_per_trial=0, num_samples=10, max_num_epochs=10):
     #     mp.spawn(train, nprocs=args.ngpus_per_node, args=(args,))
     # else:
     #     train(None, args)
-
+ 
+    
     config = {
-        "l1": tune.choice([2**i for i in range(9)]),
-        "l2": tune.choice([2**i for i in range(9)]), 
-        "lr": tune.loguniform(1e-4, 1e-1),
-        "batch_size": tune.choice([2, 4, 8, 16]),
+        "batch_size": tune.choice([1, 2, 4, 8]),
     }
     
     scheduler = ASHAScheduler(
         metric="loss",
         mode="min",
-        max_t=max_num_epochs,
+        max_t=args.epochs,
         grace_period=1,
         reduction_factor=2,
     )
 
     result = tune.run(
         partial(train, data_dir=data_dir),
-        resources_per_trial={"cpu": 2, "gpu": gpus_per_trial},
+        resources_per_trial={"cpu": 1, "gpu": args.ngpus_per_node},
         config=config,
-        num_samples=num_samples,
+        num_samples=args.num_samples,
         scheduler=scheduler,
     )
 
 
-def train(local_rank, args):
+def train(local_rank, args, config):
     cudnn.benchmark = True
     torch.manual_seed(args.manualSeed)
     np.random.seed(args.manualSeed)
@@ -180,6 +181,7 @@ def train(local_rank, args):
 
     PE = PositionalEncoding(args.embed)
     args.embed_length = PE.embed_length
+    
     model = Generator(embed_length=args.embed_length, stem_dim_num=args.stem_dim_num, fc_hw_dim=args.fc_hw_dim, expansion=args.expansion, 
         num_blocks=args.num_blocks, norm=args.norm, act=args.act, bias = True, reduction=args.reduction, conv_type=args.conv_type,
         stride_list=args.strides,  sin_res=args.single_res,  lower_width=args.lower_width, sigmoid=args.sigmoid)
@@ -219,6 +221,8 @@ def train(local_rank, args):
         writer = SummaryWriter(os.path.join(args.outf, f'param_{total_params}M', 'tensorboard'))
     else:
         writer = None
+
+    args.batchSize = config["batch_size"]
 
     # distrite model to gpu or parallel
     print("Use GPU: {} for training".format(local_rank))
@@ -299,12 +303,12 @@ def train(local_rank, args):
 
     train_dataset = DataSet(train_data_dir, img_transforms,vid_list=args.vid, frame_gap=args.frame_gap,  )
     train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset) if args.distributed else None
-    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batchSize, shuffle=(train_sampler is None),
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=(train_sampler is None),
          num_workers=args.workers, pin_memory=True, sampler=train_sampler, drop_last=True, worker_init_fn=worker_init_fn)
 
     val_dataset = DataSet(val_data_dir, img_transforms, vid_list=args.vid, frame_gap=args.test_gap,  )
     val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset) if args.distributed else None
-    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batchSize,  shuffle=False,
+    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=config["batch_size"],  shuffle=False,
          num_workers=args.workers, pin_memory=True, sampler=val_sampler, drop_last=False, worker_init_fn=worker_init_fn)
     data_size = len(train_dataset)
 
@@ -541,6 +545,7 @@ def evaluate(model, val_dataloader, pe, local_rank, args):
             # torch.cuda.current_stream().synchronize()
             time_list.append((datetime.now() - start_time).total_seconds())
 
+        
         # dump predictions
         if args.dump_images:
             for batch_ind in range(args.batchSize):
