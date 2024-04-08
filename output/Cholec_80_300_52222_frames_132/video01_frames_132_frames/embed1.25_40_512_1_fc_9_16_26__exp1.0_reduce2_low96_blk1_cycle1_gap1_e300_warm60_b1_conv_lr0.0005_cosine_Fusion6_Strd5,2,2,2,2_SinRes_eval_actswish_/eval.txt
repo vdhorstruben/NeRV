@@ -1,0 +1,3 @@
+2024_04_08_15_17_55	 Results for checkpoint: /kaggle/working/NeRV/output/Cholec_80_300_52222_frames_132/video01_frames_132_frames/model_300_epochs_132_frames/model_val_best.pth
+PSNR/ms_ssim on validate set for bit -1 with axis 0: 29.63/0.9181
+
